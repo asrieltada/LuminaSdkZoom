@@ -1,22 +1,4 @@
 <!DOCTYPE html>
-<?php
-    function generate_signature ( $api_key, $api_secret, $meeting_number, $role){
-
-        //Set the timezone to UTC
-        date_default_timezone_set("UTC");
-      
-          $time = time() * 1000 - 30000;//time in milliseconds (or close enough)
-          
-          $data = base64_encode($api_key . $meeting_number . $time . $role);
-          
-          $hash = hash_hmac('sha256', $data, $api_secret, true);
-          
-          $_sig = $api_key . "." . $meeting_number . "." . $time . "." . $role . "." . base64_encode($hash);
-          
-          //return signature, url safe base64 encoded
-          return rtrim(strtr(base64_encode($_sig), '+/', '-_'), '=');
-      }
-?>
 <html>
     <head>
         <meta charset="utf-8">
@@ -72,13 +54,38 @@
                 }
                 });
 
-                client.join({
-                    apiKey: apiKey,
-                    signature: signature, // role in signature needs to be 0
-                    meetingNumber: meetingNumber,
-                    password: password,
-                    userName: userName
-                })
+                import { KJUR } from "jsrsasign";
+// https://www.npmjs.com/package/jsrsasign
+
+                function generateVideoToken(sdkKey, sdkSecret, topic, password = "") {
+                let signature = "";
+                // try {
+                const iat = Math.round(new Date().getTime() / 1000);
+                const exp = iat + 60 * 60 * 2;
+
+                // Header
+                const oHeader = { alg: "HS256", typ: "JWT" };
+                // Payload
+                const oPayload = {
+                    app_key: sdkKey,
+                    iat,
+                    exp,
+                    tpc: topic,
+                    pwd: password,
+                };
+                // Sign JWT
+                const sHeader = JSON.stringify(oHeader);
+                const sPayload = JSON.stringify(oPayload);
+                signature = KJUR.jws.JWS.sign("HS256", sHeader, sPayload, sdkSecret);
+                return signature;
+                }
+
+                generateVideoToken(
+                "6PKjmapPWsAs0v5pC06Vudclk0V5xGA9yKH3",
+                "WlyFuIhOD9vbl9t04Me5FkUStFZbw25i1vBM",
+                "session_name",
+                "session_password"
+                ); // call the generateVideoToken function
 
 
             </script>
